@@ -1,0 +1,176 @@
+// ====== OMR EVALUATION SYSTEM (Single File) ======
+const express = require("express");
+const bodyParser = require("body-parser");
+
+const app = express();
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// ---------- HOME PAGE (HTML + CSS + JS) ----------
+app.get("/", (req, res) => {
+  res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OMR Evaluation System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #eef2f7;
+      text-align: center;
+      padding: 40px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    form {
+      margin-top: 30px;
+    }
+
+    .sheet-container {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    .sheet {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      width: 260px;
+    }
+
+    .sheet h2 {
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 150px;
+      font-size: 16px;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      resize: none;
+    }
+
+    button {
+      padding: 10px 30px;
+      background: #4CAF50;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #45a049;
+    }
+
+    footer {
+      margin-top: 40px;
+      color: #777;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>OMR Evaluation System</h1>
+
+  <form action="/evaluate" method="POST">
+    <div class="sheet-container">
+      <div class="sheet">
+        <h2>Solved Answer Sheet</h2>
+        <textarea name="correctAnswers" placeholder="Enter answers like: A,B,C,D,A"></textarea>
+      </div>
+
+      <div class="sheet">
+        <h2>Student Answer Sheet</h2>
+        <textarea name="studentAnswers" placeholder="Enter answers like: A,C,B,D,A"></textarea>
+      </div>
+    </div>
+
+    <button type="submit">Process</button>
+  </form>
+
+  <footer>Developed by OMR System | Node.js + HTML + CSS + JS</footer>
+</body>
+</html>
+  `);
+});
+
+// ---------- PROCESS & RESULT PAGE ----------
+app.post("/evaluate", (req, res) => {
+  const { correctAnswers, studentAnswers } = req.body;
+
+  const correct = correctAnswers.trim().split(",");
+  const student = studentAnswers.trim().split(",");
+
+  let total = correct.length;
+  let score = 0;
+  let results = [];
+
+  for (let i = 0; i < total; i++) {
+    const isCorrect = correct[i]?.trim().toUpperCase() === student[i]?.trim().toUpperCase();
+    if (isCorrect) score++;
+    results.push({
+      question: i + 1,
+      correct: correct[i] || "-",
+      student: student[i] || "-",
+      status: isCorrect ? "Correct" : "Wrong",
+    });
+  }
+
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>OMR Result</title>
+      <style>
+        body { font-family: Arial; background: #f9f9f9; text-align: center; padding: 30px; }
+        table { margin: 20px auto; border-collapse: collapse; width: 80%; max-width: 700px; }
+        th, td { border: 1px solid #ccc; padding: 10px; }
+        th { background: #4CAF50; color: white; }
+        .correct { color: green; font-weight: bold; }
+        .wrong { color: red; font-weight: bold; }
+        .score { font-size: 22px; margin-top: 20px; }
+        a { display: inline-block; margin-top: 20px; text-decoration: none; color: white; background: #4CAF50; padding: 10px 20px; border-radius: 5px; }
+        a:hover { background: #45a049; }
+      </style>
+    </head>
+    <body>
+      <h1>OMR Evaluation Result</h1>
+      <table>
+        <tr><th>Question</th><th>Correct Answer</th><th>Student Answer</th><th>Status</th></tr>
+        ${results.map(r => `
+          <tr>
+            <td>${r.question}</td>
+            <td>${r.correct}</td>
+            <td>${r.student}</td>
+            <td class="${r.status === "Correct" ? "correct" : "wrong"}">${r.status}</td>
+          </tr>
+        `).join("")}
+      </table>
+
+      <div class="score">Total Score: ${score} / ${total}</div>
+      <a href="/">Go Back</a>
+    </body>
+    </html>
+  `);
+});
+
+// ---------- START SERVER ----------
+const PORT = 3000;
+app.listen(PORT, () => console.log(\`✅ Server running on http://localhost:\${PORT}\`));
